@@ -1,26 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '@/components/Button';
 import AnimatedImage from '@/components/AnimatedImage';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Check, CreditCard, Lock } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 
-const PurchasePage: React.FC = () => {
+// Initialize Stripe (Replace with your publishable key)
+const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+
+// Checkout Form Component that uses Stripe hooks
+const CheckoutForm = () => {
   const { toast } = useToast();
+  const stripe = useStripe();
+  const elements = useElements();
   const [processing, setProcessing] = useState(false);
-  
-  // Form state
   const [formData, setFormData] = useState({
-    prefix: '',
-    firstName: '',
-    middleName: '',
-    lastName: '',
+    fullName: '',
     email: '',
-    // Credit card fields will be handled by Stripe or similar in a real implementation
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvc: ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,11 +35,11 @@ const PurchasePage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+    if (!formData.fullName || !formData.email) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -43,22 +47,161 @@ const PurchasePage: React.FC = () => {
       });
       return;
     }
+
+    if (!stripe || !elements) {
+      // Stripe.js has not loaded yet
+      return;
+    }
     
     setProcessing(true);
     
-    // Simulate processing
-    setTimeout(() => {
+    try {
+      // Get a reference to the CardElement
+      const cardElement = elements.getElement(CardElement);
+      
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
+
+      // Create payment method using the card element
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // In a real implementation, you would send the payment method ID to your server
+      // to complete the payment on the backend
+      console.log('PaymentMethod created:', paymentMethod);
+      
+      // Simulate successful payment
       toast({
-        title: "Order Received",
+        title: "Payment Successful",
         description: "We've sent purchase instructions to your email.",
       });
-      setProcessing(false);
       
       // In a real implementation, you would redirect to a confirmation page
-      // window.location.href = "https://pandaflow.shop/order-confirmed-2/";
-    }, 1500);
+      // window.location.href = "/confirmation";
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "An error occurred during payment processing.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
   
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="text-xl font-medium">Your Information</h3>
+        
+        {/* Full Name Field */}
+        <div>
+          <label htmlFor="fullName" className="block text-sm font-bold mb-1">
+            Full Name*
+          </label>
+          <input
+            type="text"
+            id="fullName"
+            name="fullName"
+            placeholder="E.g. John Doe"
+            className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+            value={formData.fullName}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        
+        {/* Email Field */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-bold mb-1">
+            Email Address*
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="E.g. john@example.com"
+            className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            We'll send purchase instructions to this email
+          </p>
+        </div>
+      </div>
+      
+      {/* Credit Card Section */}
+      <div className="pt-6 border-t border-border">
+        <label htmlFor="card-element" className="block text-sm font-bold mb-3">
+          Credit / Debit Card
+        </label>
+        
+        <div className="p-4 border border-input rounded-md mb-4">
+          <CardElement
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#424770',
+                  '::placeholder': {
+                    color: '#aab7c4',
+                  },
+                },
+                invalid: {
+                  color: '#9e2146',
+                },
+              },
+            }}
+          />
+        </div>
+        
+        <Button 
+          variant="primary"
+          size="lg"
+          fullWidth
+          type="submit"
+          disabled={processing || !stripe}
+          icon={processing ? undefined : <CreditCard size={18} />}
+          iconPosition="left"
+          className="relative overflow-hidden bg-[#0570DE]"
+        >
+          {processing ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            "Order Now"
+          )}
+        </Button>
+        
+        <div className="mt-3 flex justify-center items-center text-xs text-muted-foreground">
+          <Lock size={14} className="mr-1" />
+          Secure payment processing
+        </div>
+        
+        <p className="mt-4 text-xs text-center text-muted-foreground">
+          By placing your order, you agree to our <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
+        </p>
+      </div>
+    </form>
+  );
+};
+
+const PurchasePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="py-6 px-4 border-b border-border">
@@ -99,200 +242,9 @@ const PurchasePage: React.FC = () => {
               </div>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-6" id="wrapper-7879-4983">
-              <div className="space-y-4">
-                <h3 className="text-xl font-medium">Your Information</h3>
-                
-                {/* Name Fields Section */}
-                <div className="space-y-4">
-                  <div className="mb-2">
-                    <label htmlFor="name-fields" className="block text-sm font-bold mb-1">
-                      Name
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="prefix" className="block text-xs text-muted-foreground mb-1">
-                          Prefix
-                        </label>
-                        <select 
-                          id="prefix"
-                          name="prefix"
-                          className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          value={formData.prefix}
-                          onChange={(e) => setFormData(prev => ({ ...prev, prefix: e.target.value }))}
-                        >
-                          <option value="">Select</option>
-                          <option value="Mr.">Mr.</option>
-                          <option value="Mrs.">Mrs.</option>
-                          <option value="Ms.">Ms.</option>
-                          <option value="Dr.">Dr.</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="firstName" className="block text-xs text-muted-foreground mb-1">
-                          First Name*
-                        </label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          name="firstName"
-                          placeholder="E.g. John"
-                          className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="middleName" className="block text-xs text-muted-foreground mb-1">
-                        Middle Name
-                      </label>
-                      <input
-                        type="text"
-                        id="middleName"
-                        name="middleName"
-                        placeholder="E.g. Smith"
-                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.middleName}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="lastName" className="block text-xs text-muted-foreground mb-1">
-                        Last Name*
-                      </label>
-                      <input
-                        type="text"
-                        id="lastName"
-                        name="lastName"
-                        placeholder="E.g. Doe"
-                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Email Field */}
-                <div id="wrapper-4446-2937">
-                  <label htmlFor="email" className="block text-sm font-bold mb-1">
-                    Email Address*
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="E.g. john@doe.com"
-                    className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    We'll send purchase instructions to this email
-                  </p>
-                </div>
-              </div>
-              
-              {/* Credit Card Section */}
-              <div id="wrapper-3871-4460" className="pt-6 border-t border-border">
-                <label htmlFor="card-element" className="block text-sm font-bold mb-3">
-                  Credit / Debit Card
-                </label>
-                
-                <div className="space-y-4 mb-4">
-                  <div>
-                    <label htmlFor="cardNumber" className="block text-xs text-muted-foreground mb-1">
-                      Card Number*
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        id="cardNumber"
-                        name="cardNumber"
-                        placeholder="1234 5678 9012 3456"
-                        className="w-full pl-4 pr-10 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.cardNumber}
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <CreditCard size={18} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="cardExpiry" className="block text-xs text-muted-foreground mb-1">
-                        Expiration Date*
-                      </label>
-                      <input
-                        type="text"
-                        id="cardExpiry"
-                        name="cardExpiry"
-                        placeholder="MM/YY"
-                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.cardExpiry}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="cardCvc" className="block text-xs text-muted-foreground mb-1">
-                        Security Code (CVC)*
-                      </label>
-                      <input
-                        type="text"
-                        id="cardCvc"
-                        name="cardCvc"
-                        placeholder="123"
-                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                        value={formData.cardCvc}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  type="submit"
-                  disabled={processing}
-                  icon={processing ? undefined : <CreditCard size={18} />}
-                  iconPosition="left"
-                  className="relative overflow-hidden bg-[#0570DE]"
-                >
-                  {processing ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : (
-                    "Order Now"
-                  )}
-                </Button>
-                
-                <div className="mt-3 flex justify-center items-center text-xs text-muted-foreground">
-                  <Lock size={14} className="mr-1" />
-                  Secure payment processing
-                </div>
-                
-                <p className="mt-4 text-xs text-center text-muted-foreground">
-                  By placing your order, you agree to our <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
-                </p>
-              </div>
-            </form>
+            <Elements stripe={stripePromise}>
+              <CheckoutForm />
+            </Elements>
           </div>
           
           <div className="order-1 lg:order-2">
