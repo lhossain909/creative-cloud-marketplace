@@ -8,14 +8,34 @@ import { ArrowLeft, Check, CreditCard, Lock } from 'lucide-react';
 
 const PurchasePage: React.FC = () => {
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [processing, setProcessing] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    prefix: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    email: '',
+    // Credit card fields will be handled by Stripe or similar in a real implementation
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvc: ''
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !name) {
+    // Basic validation
+    if (!formData.firstName || !formData.lastName || !formData.email) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -33,6 +53,9 @@ const PurchasePage: React.FC = () => {
         description: "We've sent purchase instructions to your email.",
       });
       setProcessing(false);
+      
+      // In a real implementation, you would redirect to a confirmation page
+      // window.location.href = "https://pandaflow.shop/order-confirmed-2/";
     }, 1500);
   };
   
@@ -76,34 +99,99 @@ const PurchasePage: React.FC = () => {
               </div>
             </div>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" id="wrapper-7879-4983">
               <div className="space-y-4">
                 <h3 className="text-xl font-medium">Your Information</h3>
                 
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
+                {/* Name Fields Section */}
+                <div className="space-y-4">
+                  <div className="mb-2">
+                    <label htmlFor="name-fields" className="block text-sm font-bold mb-1">
+                      Name
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="prefix" className="block text-xs text-muted-foreground mb-1">
+                          Prefix
+                        </label>
+                        <select 
+                          id="prefix"
+                          name="prefix"
+                          className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          value={formData.prefix}
+                          onChange={(e) => setFormData(prev => ({ ...prev, prefix: e.target.value }))}
+                        >
+                          <option value="">Select</option>
+                          <option value="Mr.">Mr.</option>
+                          <option value="Mrs.">Mrs.</option>
+                          <option value="Ms.">Ms.</option>
+                          <option value="Dr.">Dr.</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="firstName" className="block text-xs text-muted-foreground mb-1">
+                          First Name*
+                        </label>
+                        <input
+                          type="text"
+                          id="firstName"
+                          name="firstName"
+                          placeholder="E.g. John"
+                          className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="middleName" className="block text-xs text-muted-foreground mb-1">
+                        Middle Name
+                      </label>
+                      <input
+                        type="text"
+                        id="middleName"
+                        name="middleName"
+                        placeholder="E.g. Smith"
+                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={formData.middleName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-xs text-muted-foreground mb-1">
+                        Last Name*
+                      </label>
+                      <input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        placeholder="E.g. Doe"
+                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
                 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">
-                    Email Address
+                {/* Email Field */}
+                <div id="wrapper-4446-2937">
+                  <label htmlFor="email" className="block text-sm font-bold mb-1">
+                    Email Address*
                   </label>
                   <input
                     type="email"
                     id="email"
+                    name="email"
+                    placeholder="E.g. john@doe.com"
                     className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={formData.email}
+                    onChange={handleInputChange}
                     required
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -112,7 +200,66 @@ const PurchasePage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="pt-6 border-t border-border">
+              {/* Credit Card Section */}
+              <div id="wrapper-3871-4460" className="pt-6 border-t border-border">
+                <label htmlFor="card-element" className="block text-sm font-bold mb-3">
+                  Credit / Debit Card
+                </label>
+                
+                <div className="space-y-4 mb-4">
+                  <div>
+                    <label htmlFor="cardNumber" className="block text-xs text-muted-foreground mb-1">
+                      Card Number*
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="cardNumber"
+                        name="cardNumber"
+                        placeholder="1234 5678 9012 3456"
+                        className="w-full pl-4 pr-10 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={formData.cardNumber}
+                        onChange={handleInputChange}
+                        required
+                      />
+                      <CreditCard size={18} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="cardExpiry" className="block text-xs text-muted-foreground mb-1">
+                        Expiration Date*
+                      </label>
+                      <input
+                        type="text"
+                        id="cardExpiry"
+                        name="cardExpiry"
+                        placeholder="MM/YY"
+                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={formData.cardExpiry}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="cardCvc" className="block text-xs text-muted-foreground mb-1">
+                        Security Code (CVC)*
+                      </label>
+                      <input
+                        type="text"
+                        id="cardCvc"
+                        name="cardCvc"
+                        placeholder="123"
+                        className="w-full px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={formData.cardCvc}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                
                 <Button 
                   variant="primary"
                   size="lg"
@@ -121,7 +268,7 @@ const PurchasePage: React.FC = () => {
                   disabled={processing}
                   icon={processing ? undefined : <CreditCard size={18} />}
                   iconPosition="left"
-                  className="relative overflow-hidden"
+                  className="relative overflow-hidden bg-[#0570DE]"
                 >
                   {processing ? (
                     <span className="flex items-center">
@@ -132,7 +279,7 @@ const PurchasePage: React.FC = () => {
                       Processing...
                     </span>
                   ) : (
-                    "Proceed to Payment"
+                    "Order Now"
                   )}
                 </Button>
                 
@@ -140,6 +287,10 @@ const PurchasePage: React.FC = () => {
                   <Lock size={14} className="mr-1" />
                   Secure payment processing
                 </div>
+                
+                <p className="mt-4 text-xs text-center text-muted-foreground">
+                  By placing your order, you agree to our <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
+                </p>
               </div>
             </form>
           </div>
