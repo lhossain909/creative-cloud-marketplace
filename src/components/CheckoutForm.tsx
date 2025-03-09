@@ -86,8 +86,28 @@ const CheckoutForm = () => {
         throw error;
       }
 
-      // In a real implementation, you would send the payment method ID to your server
-      // to complete the payment on the backend
+      // In a production environment, you would send the payment method ID to your backend
+      // Example of how this might look:
+      /*
+      const response = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethodId: paymentMethod.id,
+          amount: 47988, // Amount in cents ($479.88)
+          email: formData.email,
+          name: formData.fullName
+        })
+      });
+      
+      const paymentResult = await response.json();
+      
+      if (paymentResult.error) {
+        throw new Error(paymentResult.error);
+      }
+      */
+
+      // This is just a simulation for demonstration purposes
       console.log('PaymentMethod created:', paymentMethod);
       
       // Simulate successful payment

@@ -1,17 +1,16 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import Button from '@/components/Button';
 import AnimatedImage from '@/components/AnimatedImage';
-import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Check, CreditCard, Lock } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
 } from '@stripe/react-stripe-js';
 import CheckoutForm from '@/components/CheckoutForm';
 
-// Initialize Stripe - Replace this with your publishable key
+// Replace this with your actual Stripe publishable key from your Stripe dashboard
+// It will look something like: pk_live_xxxxxxxxxxxxxxxxxxxxxxxx or pk_test_xxxxxxxxxxxxxxxxxxxxxxxx
 const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 const PurchasePage: React.FC = () => {
