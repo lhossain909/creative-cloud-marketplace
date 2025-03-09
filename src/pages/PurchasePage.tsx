@@ -11,7 +11,7 @@ import CheckoutForm from '@/components/CheckoutForm';
 
 // Replace this with your actual Stripe publishable key from your Stripe dashboard
 // It will look something like: pk_live_xxxxxxxxxxxxxxxxxxxxxxxx or pk_test_xxxxxxxxxxxxxxxxxxxxxxxx
-const stripePromise = loadStripe('pk_test_TYooMQauvdEDq54NiTphI7jx');
+const stripePromise = loadStripe('pk_live_51QwVJTL40NJf4qrtzhRHd3YfPCGBI7X6HtgMTPkUxcR4V8M5935CZBpi2qq6lIl41eDCysedEmA9mVk9GfDHsYht00IOCqmiVu');
 
 const PurchasePage: React.FC = () => {
   return (
