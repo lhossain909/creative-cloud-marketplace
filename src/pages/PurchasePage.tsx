@@ -114,5 +114,6 @@ const PurchasePage: React.FC = () => {
     </div>
   );
 };
+<script src="https://js.stripe.com/v3/"></script>
 
 export default PurchasePage;
